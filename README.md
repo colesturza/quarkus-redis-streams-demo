@@ -4,6 +4,14 @@ This project uses Quarkus, the Supersonic Subatomic Java Framework.
 
 If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
 
+## Implementation Overview
+I've created a Redis Stream consumer for consumer groups because there is no Smallrye Reactive Messaging 
+implementation for Redis streams. This encapsulated template can be reused across different services and is 
+inspired by [this article](https://cschleiden.dev/blog/2022-04-08-task-queue-with-redis).
+
+- [StreamConsumerGroupReader.java](https://github.com/colesturza/quarkus-redis-streams-demo/blob/master/src/main/java/com/example/StreamConsumerGroupReader.java)
+- [PersonStreamConsumerGroupReader.java](https://github.com/colesturza/quarkus-redis-streams-demo/blob/master/src/main/java/com/example/PersonStreamConsumerGroupReader.java)
+
 ## Running the application in dev mode
 
 You can run your application in dev mode that enables live coding using:
@@ -60,18 +68,12 @@ If you want to learn more about building native executables, please consult <htt
 - REST ([guide](https://quarkus.io/guides/rest)): A Jakarta REST implementation utilizing build time processing and
   Vert.x. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on
   it.
-- Narayana JTA - Transaction manager ([guide](https://quarkus.io/guides/transaction)): Offer JTA transaction support (
-  included in Hibernate ORM)
 - Hibernate Validator ([guide](https://quarkus.io/guides/validation)): Validate object properties (field, getter) and
   method parameters for your beans (REST, CDI, Jakarta Persistence)
 - REST Jackson ([guide](https://quarkus.io/guides/rest#json-serialisation)): Jackson serialization support for Quarkus
   REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it
 - YAML Configuration ([guide](https://quarkus.io/guides/config-yaml)): Use YAML to configure your Quarkus application
-- Logging JSON ([guide](https://quarkus.io/guides/logging#json-logging)): Add JSON formatter for console logging
 - Redis Client ([guide](https://quarkus.io/guides/redis)): Connect to Redis in either imperative or reactive style
-- Reactive PostgreSQL client ([guide](https://quarkus.io/guides/reactive-sql-clients)): Connect to the PostgreSQL
-  database using the reactive pattern
-- Redis Cache ([guide](https://quarkus.io/guides/cache-redis-reference)): Use Redis as the caching backend
 
 ## Provided Code
 

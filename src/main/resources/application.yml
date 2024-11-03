@@ -1,0 +1,7 @@
+person-consumer:
+  group-name: "person-consumers"
+  stream-name: "person-stream"
+  consumer-name: "consumer1"
+  max-processing-time-seconds: 4
+producer:
+  stream-name: "person-stream"

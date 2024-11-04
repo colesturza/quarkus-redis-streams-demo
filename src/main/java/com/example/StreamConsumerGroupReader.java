@@ -48,7 +48,7 @@ public abstract class StreamConsumerGroupReader<T> {
 	@PostConstruct
 	void initialize() {
 		initializeStreamAndGroup()
-				.onFailure().retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(10)).atMost(5)
+				.onFailure().retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(5)).atMost(config.retryAttempts())
 				.subscribe().with(
 						unused -> startConsuming(),
 						failure -> log.error("Failed to initialize stream and consumer group", failure)

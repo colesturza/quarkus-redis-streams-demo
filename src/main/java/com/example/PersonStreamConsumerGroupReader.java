@@ -24,6 +24,16 @@ public class PersonStreamConsumerGroupReader extends StreamConsumerGroupReader<P
 	private static final double FAILURE_PROBABILITY = 0.3; // 30% chance of failure
 
 	PersonStreamConsumerGroupReader() {
+		// Required no-args constructor for Quarkus to properly instantiate this bean.
+		// Exception encountered:
+		// "It's not possible to automatically add a synthetic no-args constructor to an unproxyable bean class.
+		// You need to manually add a non-private no-args constructor to com.example.PersonStreamConsumerGroupReader
+		// in order to fulfill the requirements for normal scoped/intercepted/decorated beans."
+		//
+		// Quarkus requires a no-args constructor for certain classes that it proxies, but it cannot generate one for this bean.
+		// Adding this constructor allows Quarkus to instantiate and manage this bean as expected.
+		// The 'super(null, null);' call is used here as placeholders for `ReactiveRedisDataSource` and `PersonConsumerConfig`,
+		// since these dependencies are injected in the main constructor.
 		super(null, null);
 	}
 

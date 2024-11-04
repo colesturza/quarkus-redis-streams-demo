@@ -28,13 +28,10 @@ public abstract class StreamConsumerGroupReader<T> {
 	private static final Logger log = LoggerFactory.getLogger(StreamConsumerGroupReader.class);
 
 	private final AtomicBoolean closed = new AtomicBoolean(false);
-	private final ReactiveStreamCommands<String, String, T> commands;
-	private final ConsumerConfig config;
 
-	public StreamConsumerGroupReader(ReactiveStreamCommands<String, String, T> commands, ConsumerConfig config) {
-		this.commands = commands;
-		this.config = config;
-	}
+	protected abstract ReactiveStreamCommands<String, String, T> getCommands();
+
+	protected abstract ConsumerConfig getConfig();
 
 	protected abstract Uni<Void> process(StreamMessage<String, String, T> message);
 
@@ -48,7 +45,7 @@ public abstract class StreamConsumerGroupReader<T> {
 	@PostConstruct
 	void initialize() {
 		initializeStreamAndGroup()
-				.onFailure().retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(5)).atMost(config.retryAttempts())
+				.onFailure().retry().withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(5)).atMost(getConfig().retryAttempts())
 				.subscribe().with(
 						unused -> startConsuming(),
 						failure -> log.error("Failed to initialize stream and consumer group", failure)
@@ -61,9 +58,9 @@ public abstract class StreamConsumerGroupReader<T> {
 	}
 
 	private Uni<Void> initializeStreamAndGroup() {
-		return commands.xgroupCreate(
-				config.streamName(),
-				config.groupName(),
+		return getCommands().xgroupCreate(
+				getConfig().streamName(),
+				getConfig().groupName(),
 				READ_FROM_BEGINNING_OF_STREAM,
 				new XGroupCreateArgs().mkstream() // create stream if it doesn't already exist
 		).onFailure().invoke(failure -> log.error("Stream or group creation failed", failure));
@@ -79,25 +76,25 @@ public abstract class StreamConsumerGroupReader<T> {
 	}
 
 	private Uni<List<StreamMessage<String, String, T>>> claimOrReadMessages() {
-		return commands.xautoclaim(
-				config.streamName(),
-				config.groupName(),
-				config.consumerName(),
-				Duration.ofSeconds(config.claimIntervalSeconds()),
+		return getCommands().xautoclaim(
+				getConfig().streamName(),
+				getConfig().groupName(),
+				getConfig().consumerName(),
+				Duration.ofSeconds(getConfig().claimIntervalSeconds()),
 				READ_FROM_BEGINNING_OF_STREAM,
-				config.batchSize()
+				getConfig().batchSize()
 		).chain(claimed -> {
 			if (!claimed.getMessages().isEmpty()) {
 				return Uni.createFrom().item(claimed.getMessages());
 			}
-			return commands.xreadgroup(
-					config.groupName(),
-					config.consumerName(),
-					config.streamName(),
+			return getCommands().xreadgroup(
+					getConfig().groupName(),
+					getConfig().consumerName(),
+					getConfig().streamName(),
 					READ_UNDELIVERED_MESSAGES_ONLY,
 					new XReadGroupArgs()
 							.block(Duration.ofSeconds(5))
-							.count(config.batchSize())
+							.count(getConfig().batchSize())
 			);
 		});
 	}
@@ -108,8 +105,8 @@ public abstract class StreamConsumerGroupReader<T> {
 
 		Uni<Void> processingUni = process(message).chain(() -> acknowledgeMessage(message.id()));
 
-		if (config.maxProcessingTimeSeconds() > 0) {
-			Duration processingTimeout = Duration.ofSeconds(config.maxProcessingTimeSeconds());
+		if (getConfig().maxProcessingTimeSeconds() > 0) {
+			Duration processingTimeout = Duration.ofSeconds(getConfig().maxProcessingTimeSeconds());
 
 			processingUni = processingUni
 					.ifNoItem().after(processingTimeout).failWith(Unchecked.supplier(() -> {
@@ -134,15 +131,15 @@ public abstract class StreamConsumerGroupReader<T> {
 				.uni(() -> Uni.createFrom()
 						.voidItem()
 						.onItem().delayIt().by(Duration.ofMillis(1000))
-						.chain(unused -> commands.xclaim(
-										config.streamName(),
-										config.groupName(),
-										config.consumerName(),
+						.chain(unused -> getCommands().xclaim(
+										getConfig().streamName(),
+										getConfig().groupName(),
+										getConfig().consumerName(),
 										Duration.ofMillis(1000),
 										messageId)
 								.onFailure().retry()
 								.withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(5))
-								.atMost(config.retryAttempts())))
+								.atMost(getConfig().retryAttempts())))
 				.until(__ -> processingFuture.isDone())
 				.subscribe().with(
 						ignored -> log.info("Reclaimed task for message - id: {}", messageId),
@@ -150,10 +147,10 @@ public abstract class StreamConsumerGroupReader<T> {
 	}
 
 	private Uni<Void> acknowledgeMessage(String messageId) {
-		return commands.xack(config.streamName(), config.groupName(), messageId)
+		return getCommands().xack(getConfig().streamName(), getConfig().groupName(), messageId)
 				.onFailure().retry()
 				.withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(5))
-				.atMost(config.retryAttempts())
+				.atMost(getConfig().retryAttempts())
 				.invoke(unused -> log.info("Acknowledged message with id: {}, {}", messageId, unused))
 				.onFailure().invoke(failure -> log.error("Failed to acknowledge message with id: {}", messageId, failure))
 				.replaceWithVoid();

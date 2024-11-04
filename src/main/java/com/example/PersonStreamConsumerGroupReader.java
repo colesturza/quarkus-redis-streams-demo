@@ -1,6 +1,7 @@
 package com.example;
 
 import io.quarkus.redis.datasource.ReactiveRedisDataSource;
+import io.quarkus.redis.datasource.stream.ReactiveStreamCommands;
 import io.quarkus.redis.datasource.stream.StreamMessage;
 import io.quarkus.runtime.Startup;
 import io.smallrye.config.ConfigMapping;
@@ -23,23 +24,23 @@ public class PersonStreamConsumerGroupReader extends StreamConsumerGroupReader<P
 	private final Random rand = new Random();
 	private static final double FAILURE_PROBABILITY = 0.3; // 30% chance of failure
 
-	PersonStreamConsumerGroupReader() {
-		// Required no-args constructor for Quarkus to properly instantiate this bean.
-		// Exception encountered:
-		// "It's not possible to automatically add a synthetic no-args constructor to an unproxyable bean class.
-		// You need to manually add a non-private no-args constructor to com.example.PersonStreamConsumerGroupReader
-		// in order to fulfill the requirements for normal scoped/intercepted/decorated beans."
-		//
-		// Quarkus requires a no-args constructor for certain classes that it proxies, but it cannot generate one for this bean.
-		// Adding this constructor allows Quarkus to instantiate and manage this bean as expected.
-		// The 'super(null, null);' call is used here as placeholders for `ReactiveStreamCommands` and `PersonConsumerConfig`,
-		// since these dependencies are passed up after being injected in the main constructor.
-		super(null, null);
-	}
+	private final ReactiveStreamCommands<String, String, Person> commands;
+	private final ConsumerConfig config;
 
 	@Inject
 	public PersonStreamConsumerGroupReader(ReactiveRedisDataSource ds, PersonConsumerConfig config) {
-		super(ds.stream(Person.class), config);
+		this.commands = ds.stream(Person.class);
+		this.config = config;
+	}
+
+	@Override
+	protected ReactiveStreamCommands<String, String, Person> getCommands() {
+		return commands;
+	}
+
+	@Override
+	protected ConsumerConfig getConfig() {
+		return config;
 	}
 
 	@Override

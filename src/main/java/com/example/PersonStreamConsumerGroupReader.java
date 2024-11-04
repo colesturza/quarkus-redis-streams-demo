@@ -32,8 +32,8 @@ public class PersonStreamConsumerGroupReader extends StreamConsumerGroupReader<P
 		//
 		// Quarkus requires a no-args constructor for certain classes that it proxies, but it cannot generate one for this bean.
 		// Adding this constructor allows Quarkus to instantiate and manage this bean as expected.
-		// The 'super(null, null);' call is used here as placeholders for `ReactiveRedisDataSource` and `PersonConsumerConfig`,
-		// since these dependencies are injected in the main constructor.
+		// The 'super(null, null);' call is used here as placeholders for `ReactiveStreamCommands` and `PersonConsumerConfig`,
+		// since these dependencies are passed up after being injected in the main constructor.
 		super(null, null);
 	}
 
